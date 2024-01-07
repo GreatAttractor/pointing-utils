@@ -3,6 +3,8 @@ use scan_fmt::scan_fmt;
 use std::{error::Error, marker::PhantomData};
 use uom::{si::f64, si::length};
 
+pub use uom;
+
 /// Arithmetic mean radius (R1) as per IUGG.
 pub const EARTH_RADIUS_M: f64 = 6_371_008.8; // TODO: convert to const `length::meter` once supported
 
