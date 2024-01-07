@@ -1,6 +1,7 @@
 use cgmath::{Basis3, Deg, EuclideanSpace, InnerSpace, Rad, Rotation, Rotation3};
 use scan_fmt::scan_fmt;
 use std::{error::Error, marker::PhantomData};
+use uom::{si::f64, si::length};
 
 /// Arithmetic mean radius (R1) as per IUGG.
 pub const EARTH_RADIUS_M: f64 = 6_371_008.8; // TODO: convert to const `length::meter` once supported
@@ -19,7 +20,7 @@ impl LatLon {
 
 pub struct GeoPos {
     pub lat_lon: LatLon,
-    pub elevation: f64
+    pub elevation: f64::Length
 }
 
 pub trait FrameOfReference {}
@@ -104,7 +105,7 @@ pub fn to_global_unit(lat_lon: &LatLon) -> Point3<f64, Global> {
 }
 
 pub fn to_global(position: &GeoPos) -> Point3<f64, Global> {
-    let r = EARTH_RADIUS_M + position.elevation;
+    let r = EARTH_RADIUS_M + position.elevation.get::<length::meter>();
     Point3::<f64, Global>::from(r * to_global_unit(&position.lat_lon).0)
 }
 
