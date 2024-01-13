@@ -69,7 +69,7 @@ impl<S, T: FrameOfReference> Vector3<S, T> {
 #[derive(Clone, Debug)]
 pub struct TargetInfoMessage {
     pub position: Point3<f64, Local>,
-    pub velocity: Vector3<f64, Local>,
+    pub velocity: Vector3<f64, Local>, // m/s
     pub track: Deg<f64>
 }
 
@@ -130,4 +130,18 @@ pub fn to_local_vec(observer: &Point3<f64, Global>, v: &Vector3<f64, Global>) ->
     let p = to_local_point(observer, &Point3::<f64, Global>::from(cgmath::Point3::from_vec(v.0)));
 
     Vector3::<f64, Local>::from(p.0 - earth_center.0)
+}
+
+/// Same units as `ground_speed`.
+pub fn to_global_velocity(geo_pos: &GeoPos, track: Deg<f64>, ground_speed: f64) -> Vector3<f64, Global> {
+    type P3G = Point3<f64, Global>;
+    type V3G = Vector3<f64, Global>;
+
+    let pos = to_global(geo_pos);
+    let north_pole = P3G::from_xyz(0.0, 0.0, EARTH_RADIUS_M);
+    let to_north_pole = V3G::from(north_pole.0 - pos.0);
+    let west = V3G::from(pos.0.to_vec().cross(to_north_pole.0));
+    let north = V3G::from(west.0.cross(pos.0.to_vec()).normalize());
+    let track_dir = V3G::from(Basis3::from_axis_angle(pos.0.to_vec().normalize(), -track).rotate_vector(north.0));
+    V3G::from(track_dir.0 * ground_speed)
 }
