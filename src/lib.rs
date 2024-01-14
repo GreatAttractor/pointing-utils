@@ -132,7 +132,7 @@ pub fn to_local_vec(observer: &Point3<f64, Global>, v: &Vector3<f64, Global>) ->
     Vector3::<f64, Local>::from(p.0 - earth_center.0)
 }
 
-/// Same units as `ground_speed`.
+/// Assumes level flight; same units as `ground_speed`.
 pub fn to_global_velocity(geo_pos: &GeoPos, track: Deg<f64>, ground_speed: f64) -> Vector3<f64, Global> {
     type P3G = Point3<f64, Global>;
     type V3G = Vector3<f64, Global>;
