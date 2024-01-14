@@ -3,6 +3,7 @@ use scan_fmt::scan_fmt;
 use std::{error::Error, marker::PhantomData};
 use uom::{si::f64, si::length};
 
+pub use cgmath;
 pub use uom;
 
 /// Arithmetic mean radius (R1) as per IUGG.
