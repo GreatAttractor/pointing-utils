@@ -103,7 +103,6 @@ impl std::fmt::Display for TargetInfoMessage  {
 #[derive(Debug, EnumDiscriminants)]
 #[strum_discriminants(derive(IntoStaticStr, EnumString))]
 pub enum MountSimulatorMessage {
-    GetInfo,
     GetPosition,
     Info(String),
     Position(Result<(f64::Angle, f64::Angle), Box<dyn Error>>),
@@ -123,8 +122,6 @@ impl std::fmt::Display for MountSimulatorMessage {
         let name = Into::<&str>::into(MountSimulatorMessageDiscriminants::from(self));
 
         match self {
-            MountSimulatorMessage::GetInfo => write!(f, "{}\n", name),
-
             MountSimulatorMessage::GetPosition => write!(f, "{}\n", name),
 
             MountSimulatorMessage::Info(s) => write!(f, "{};{}\n", name, s),
@@ -178,10 +175,6 @@ impl std::str::FromStr for MountSimulatorMessage {
             if parts.len() == 1 && parts[0] == Msg::ok() {
                 return Ok(Msg::Reply(Ok(())));
             }
-
-            if parts.len() == 1 && parts[0] == Into::<&str>::into(Discr::GetInfo) {
-                return Ok(Msg::GetInfo);
-            };
 
             if parts.len() == 1 && parts[0] == Into::<&str>::into(Discr::GetPosition) {
                 return Ok(Msg::GetPosition);
