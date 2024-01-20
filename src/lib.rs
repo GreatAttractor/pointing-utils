@@ -123,38 +123,38 @@ impl std::fmt::Display for MountSimulatorMessage {
         let name = Into::<&str>::into(MountSimulatorMessageDiscriminants::from(self));
 
         match self {
-            MountSimulatorMessage::GetInfo => write!(f, "{}", name),
+            MountSimulatorMessage::GetInfo => write!(f, "{}\n", name),
 
-            MountSimulatorMessage::GetPosition => write!(f, "{}", name),
+            MountSimulatorMessage::GetPosition => write!(f, "{}\n", name),
 
-            MountSimulatorMessage::Info(s) => write!(f, "{};{}", name, s),
+            MountSimulatorMessage::Info(s) => write!(f, "{};{}\n", name, s),
 
             MountSimulatorMessage::Position(result) => match result {
                 Ok((axis1_pos, axis2_pos)) => write!(
                     f,
-                    "{};{};{};{}",
+                    "{};{};{};{}\n",
                     name,
                     Msg::ok(),
                     axis1_pos.get::<angle::degree>(),
                     axis2_pos.get::<angle::degree>()
                 ),
-                Err(e) => write!(f, "{};{};{}", name, Msg::error(), e)
+                Err(e) => write!(f, "{};{};{}\n", name, Msg::error(), e)
             },
 
             MountSimulatorMessage::Reply(result) => match result {
-                Ok(()) => write!(f, "{};{}", name, Msg::ok()),
-                Err(e) => write!(f, "{};{};{}", name, Msg::error(), e)
+                Ok(()) => write!(f, "{};{}\n", name, Msg::ok()),
+                Err(e) => write!(f, "{};{};{}\n", name, Msg::error(), e)
             },
 
             MountSimulatorMessage::Slew(axis1, axis2) => write!(
                 f,
-                "{};{};{}",
+                "{};{};{}\n",
                 name,
                 axis1.get::<angular_velocity::degree_per_second>(),
                 axis2.get::<angular_velocity::degree_per_second>()
             ),
 
-            MountSimulatorMessage::Stop => write!(f, "{}", name),
+            MountSimulatorMessage::Stop => write!(f, "{}\n", name),
         }
     }
 }
