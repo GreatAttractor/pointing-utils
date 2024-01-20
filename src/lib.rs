@@ -1,6 +1,6 @@
 use cgmath::{Basis3, Deg, EuclideanSpace, InnerSpace, Rad, Rotation, Rotation3};
 use scan_fmt::scan_fmt;
-use std::{error::Error, marker::PhantomData};
+use std::{error::Error, io::Read, marker::PhantomData};
 use strum::EnumDiscriminants;
 use strum_macros::{IntoStaticStr, EnumString};
 use uom::{si::f64, si::{angle, angular_velocity, length}};
@@ -204,7 +204,7 @@ impl std::str::FromStr for MountSimulatorMessage {
             }
 
             if parts.len() == 3 && parts[0] == Into::<&str>::into(Discr::Slew) {
-                let (axis1_spd, axis2_spd) = match (parts[2].parse::<f64>(), parts[3].parse::<f64>()) {
+                let (axis1_spd, axis2_spd) = match (parts[1].parse::<f64>(), parts[2].parse::<f64>()) {
                     (Ok(val1), Ok(val2)) => (val1, val2),
                     _ => break
                 };
@@ -272,4 +272,27 @@ pub fn to_global_velocity(geo_pos: &GeoPos, track: Deg<f64>, ground_speed: f64) 
     let north = V3G::from(west.0.cross(pos.0.to_vec()).normalize());
     let track_dir = V3G::from(Basis3::from_axis_angle(pos.0.to_vec().normalize(), -track).rotate_vector(north.0));
     V3G::from(track_dir.0 * ground_speed)
+}
+
+pub fn read_line<R: Read>(r: &mut R) -> Result<String, Box<dyn Error>> {
+    const TIMEOUT: std::time::Duration = std::time::Duration::from_millis(100);
+
+    let mut t_start: Option<std::time::Instant> = None;
+    let mut buf = Vec::<u8>::new();
+    loop {
+        buf.push(0u8);
+        let b_len = buf.len();
+        if b_len > 512 { return Err("message too long".into()); }
+        r.read_exact(&mut buf[b_len - 1..b_len])?;
+        if buf[b_len - 1] == '\n' as u8 {
+            buf.truncate(b_len - 1);
+            break;
+        }
+        match t_start {
+            None => t_start = Some(std::time::Instant::now()),
+            Some(t) => if t.elapsed() > TIMEOUT { return Err("timed out".into()); }
+        }
+    }
+
+    Ok(std::str::from_utf8(&buf)?.into())
 }
