@@ -1,7 +1,9 @@
 use cgmath::{Basis3, Deg, EuclideanSpace, InnerSpace, Rad, Rotation, Rotation3};
 use scan_fmt::scan_fmt;
 use std::{error::Error, marker::PhantomData};
-use uom::{si::f64, si::length};
+use strum::EnumDiscriminants;
+use strum_macros::{IntoStaticStr, EnumString};
+use uom::{si::f64, si::{angle, angular_velocity, length}};
 
 pub use cgmath;
 pub use uom;
@@ -66,7 +68,6 @@ impl<S, T: FrameOfReference> Vector3<S, T> {
     }
 }
 
-/// Target information using observer's frame of reference (X points north, Z points up, Y points west).
 #[derive(Clone, Debug)]
 pub struct TargetInfoMessage {
     pub position: Point3<f64, Local>,
@@ -96,6 +97,146 @@ impl std::fmt::Display for TargetInfoMessage  {
             self.velocity.0.x, self.velocity.0.y, self.velocity.0.z,
             self.track.0
         )
+    }
+}
+
+#[derive(Debug, EnumDiscriminants)]
+#[strum_discriminants(derive(IntoStaticStr, EnumString))]
+pub enum MountSimulatorMessage {
+    GetInfo,
+    GetPosition,
+    Info(String),
+    Position(Result<(f64::Angle, f64::Angle), Box<dyn Error>>),
+    Reply(Result<(), Box<dyn Error>>),
+    Slew(f64::AngularVelocity, f64::AngularVelocity),
+    Stop,
+}
+
+impl MountSimulatorMessage {
+    fn ok() -> &'static str { "OK" }
+    fn error() -> &'static str { "Error" }
+}
+
+impl std::fmt::Display for MountSimulatorMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        type Msg = MountSimulatorMessage;
+        let name = Into::<&str>::into(MountSimulatorMessageDiscriminants::from(self));
+
+        match self {
+            MountSimulatorMessage::GetInfo => write!(f, "{}", name),
+
+            MountSimulatorMessage::GetPosition => write!(f, "{}", name),
+
+            MountSimulatorMessage::Info(s) => write!(f, "{};{}", name, s),
+
+            MountSimulatorMessage::Position(result) => match result {
+                Ok((axis1_pos, axis2_pos)) => write!(
+                    f,
+                    "{};{};{};{}",
+                    name,
+                    Msg::ok(),
+                    axis1_pos.get::<angle::degree>(),
+                    axis2_pos.get::<angle::degree>()
+                ),
+                Err(e) => write!(f, "{};{};{}", name, Msg::error(), e)
+            },
+
+            MountSimulatorMessage::Reply(result) => match result {
+                Ok(()) => write!(f, "{};{}", name, Msg::ok()),
+                Err(e) => write!(f, "{};{};{}", name, Msg::error(), e)
+            },
+
+            MountSimulatorMessage::Slew(axis1, axis2) => write!(
+                f,
+                "{};{};{}",
+                name,
+                axis1.get::<angular_velocity::degree_per_second>(),
+                axis2.get::<angular_velocity::degree_per_second>()
+            ),
+
+            MountSimulatorMessage::Stop => write!(f, "{}", name),
+        }
+    }
+}
+
+impl std::str::FromStr for MountSimulatorMessage {
+    type Err = Box<dyn Error>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        type Msg = MountSimulatorMessage;
+        type Discr = MountSimulatorMessageDiscriminants;
+
+        let parts: Vec<&str> = s.split(';').collect();
+
+        loop { // for early exit from block
+            if parts.len() < 1 { break; }
+
+            if parts.len() == 2 && parts[0] == Msg::error() {
+                return Ok(Msg::Reply(Err(parts[1].into())))
+            };
+
+            if parts.len() == 1 && parts[0] == Msg::ok() {
+                return Ok(Msg::Reply(Ok(())));
+            }
+
+            if parts.len() == 1 && parts[0] == Into::<&str>::into(Discr::GetInfo) {
+                return Ok(Msg::GetInfo);
+            };
+
+            if parts.len() == 1 && parts[0] == Into::<&str>::into(Discr::GetPosition) {
+                return Ok(Msg::GetPosition);
+            };
+
+            if parts.len() == 2 && parts[0] == Into::<&str>::into(Discr::Info) {
+                return Ok(Msg::Info(parts[1].into()));
+            }
+
+            if parts.len() >= 3 && parts[0] == Into::<&str>::into(Discr::Position) {
+                if parts[1] == Msg::error() {
+                    return Ok(Msg::Position(Err(parts[2].into())));
+                }
+
+                if parts.len() == 4 && parts[1] == Msg::ok() {
+                    let (axis1_pos, axis2_pos) = match (parts[2].parse::<f64>(), parts[3].parse::<f64>()) {
+                        (Ok(val1), Ok(val2)) => (val1, val2),
+                        _ => break
+                    };
+
+                    return Ok(Msg::Position(Ok((
+                        f64::Angle::new::<angle::degree>(axis1_pos),
+                        f64::Angle::new::<angle::degree>(axis2_pos)
+                    ))));
+                }
+            }
+
+            if parts[0] == Into::<&str>::into(Discr::Reply) {
+                if parts.len() == 2 && parts[1] == Msg::ok() {
+                    return Ok(Msg::Reply(Ok(())));
+                } else if parts.len() == 3 && parts[1] == Msg::error() {
+                    return Ok(Msg::Reply(Err(parts[2].into())));
+                }
+            }
+
+            if parts.len() == 3 && parts[0] == Into::<&str>::into(Discr::Slew) {
+                let (axis1_spd, axis2_spd) = match (parts[2].parse::<f64>(), parts[3].parse::<f64>()) {
+                    (Ok(val1), Ok(val2)) => (val1, val2),
+                    _ => break
+                };
+
+                return Ok(Msg::Slew(
+                    f64::AngularVelocity::new::<angular_velocity::degree_per_second>(axis1_spd),
+                    f64::AngularVelocity::new::<angular_velocity::degree_per_second>(axis2_spd)
+                ));
+            }
+
+            if parts.len() == 1 && parts[0] == Into::<&str>::into(Discr::Stop) {
+                return Ok(Msg::Stop);
+            }
+
+            break;
+        }
+
+        Err(format!("invalid message: {}", s).into())
     }
 }
 
