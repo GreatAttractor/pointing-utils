@@ -106,7 +106,7 @@ pub enum MountSimulatorMessage {
     GetPosition,
     Position(Result<(f64::Angle, f64::Angle), Box<dyn Error>>),
     Reply(Result<(), Box<dyn Error>>),
-    Slew(f64::AngularVelocity, f64::AngularVelocity),
+    Slew{ axis1: f64::AngularVelocity, axis2: f64::AngularVelocity },
     Stop,
 }
 
@@ -140,7 +140,7 @@ impl std::fmt::Display for MountSimulatorMessage {
                 Err(e) => write!(f, "{};{};{}\n", name, Msg::error(), e)
             },
 
-            MountSimulatorMessage::Slew(axis1, axis2) => write!(
+            MountSimulatorMessage::Slew{axis1, axis2} => write!(
                 f,
                 "{};{};{}\n",
                 name,
@@ -209,10 +209,10 @@ impl std::str::FromStr for MountSimulatorMessage {
                     _ => break
                 };
 
-                return Ok(Msg::Slew(
-                    f64::AngularVelocity::new::<angular_velocity::degree_per_second>(axis1_spd),
-                    f64::AngularVelocity::new::<angular_velocity::degree_per_second>(axis2_spd)
-                ));
+                return Ok(Msg::Slew{
+                    axis1: f64::AngularVelocity::new::<angular_velocity::degree_per_second>(axis1_spd),
+                    axis2: f64::AngularVelocity::new::<angular_velocity::degree_per_second>(axis2_spd)
+                });
             }
 
             if parts.len() == 1 && parts[0] == Into::<&str>::into(Discr::Stop) {
