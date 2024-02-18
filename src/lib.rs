@@ -72,19 +72,22 @@ impl<S, T: FrameOfReference> Vector3<S, T> {
 pub struct TargetInfoMessage {
     pub position: Point3<f64, Local>,
     pub velocity: Vector3<f64, Local>, // m/s
-    pub track: Deg<f64>
+    pub track: Deg<f64>,
+    pub altitude: f64::Length
 }
 
 impl std::str::FromStr for TargetInfoMessage {
     type Err = Box<dyn Error>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (x, y, z, vx, vy, vz, track) = scan_fmt!(s, "{};{};{};{};{};{};{}", f64, f64, f64, f64, f64, f64, f64)?;
+        let (x, y, z, vx, vy, vz, track, altitude) =
+            scan_fmt!(s, "{};{};{};{};{};{};{};{}", f64, f64, f64, f64, f64, f64, f64, f64)?;
 
         Ok(TargetInfoMessage{
             position: Point3::<f64, Local>::from_xyz(x, y, z),
             velocity: Vector3::<f64, Local>::from_xyz(vx, vy, vz),
-            track: Deg(track)
+            track: Deg(track),
+            altitude: f64::Length::new::<length::meter>(altitude)
         })
     }
 }
@@ -92,10 +95,10 @@ impl std::str::FromStr for TargetInfoMessage {
 impl std::fmt::Display for TargetInfoMessage  {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(
-            f, "{:.1};{:.1};{:.1};{:.1};{:.1};{:.1};{:.1}\n",
+            f, "{:.1};{:.1};{:.1};{:.1};{:.1};{:.1};{:.1};{:.1}\n",
             self.position.0.x, self.position.0.y, self.position.0.z,
             self.velocity.0.x, self.velocity.0.y, self.velocity.0.z,
-            self.track.0
+            self.track.0, self.altitude.get::<length::meter>()
         )
     }
 }
