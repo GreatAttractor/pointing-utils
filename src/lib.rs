@@ -1,5 +1,4 @@
 use cgmath::{Basis3, Deg, EuclideanSpace, InnerSpace, Rad, Rotation, Rotation3};
-use scan_fmt::scan_fmt;
 use std::{error::Error, io::Read, marker::PhantomData};
 use strum::EnumDiscriminants;
 use strum_macros::{IntoStaticStr, EnumString};
@@ -7,6 +6,7 @@ use uom::{si::f64, si::{angle, angular_velocity, length}};
 
 pub use cgmath;
 pub use uom;
+pub use scan_fmt;
 
 /// Arithmetic mean radius (R1) as per IUGG.
 pub const EARTH_RADIUS_M: f64 = 6_371_008.8; // TODO: convert to const `length::meter` once supported
@@ -81,7 +81,7 @@ impl std::str::FromStr for TargetInfoMessage {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (x, y, z, vx, vy, vz, track, altitude) =
-            scan_fmt!(s, "{};{};{};{};{};{};{};{}", f64, f64, f64, f64, f64, f64, f64, f64)?;
+            scan_fmt::scan_fmt!(s, "{};{};{};{};{};{};{};{}", f64, f64, f64, f64, f64, f64, f64, f64)?;
 
         Ok(TargetInfoMessage{
             position: Point3::<f64, Local>::from_xyz(x, y, z),
