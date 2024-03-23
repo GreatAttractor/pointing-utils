@@ -165,8 +165,8 @@ impl std::str::FromStr for MountSimulatorMessage {
 
         let parts: Vec<&str> = s.split(';').collect();
 
-        loop { // for early exit from block
-            if parts.len() < 1 { break; }
+        'block: {
+            if parts.len() < 1 { break 'block; }
 
             if parts.len() == 2 && parts[0] == Msg::error() {
                 return Ok(Msg::Reply(Err(parts[1].into())))
@@ -188,7 +188,7 @@ impl std::str::FromStr for MountSimulatorMessage {
                 if parts.len() == 4 && parts[1] == Msg::ok() {
                     let (axis1_pos, axis2_pos) = match (parts[2].parse::<f64>(), parts[3].parse::<f64>()) {
                         (Ok(val1), Ok(val2)) => (val1, val2),
-                        _ => break
+                        _ => break 'block
                     };
 
                     return Ok(Msg::Position(Ok((
@@ -209,7 +209,7 @@ impl std::str::FromStr for MountSimulatorMessage {
             if parts.len() == 3 && parts[0] == Into::<&str>::into(Discr::Slew) {
                 let (axis1_spd, axis2_spd) = match (parts[1].parse::<f64>(), parts[2].parse::<f64>()) {
                     (Ok(val1), Ok(val2)) => (val1, val2),
-                    _ => break
+                    _ => break 'block
                 };
 
                 return Ok(Msg::Slew{
@@ -222,7 +222,7 @@ impl std::str::FromStr for MountSimulatorMessage {
                 return Ok(Msg::Stop);
             }
 
-            break;
+            break 'block;
         }
 
         Err(format!("invalid message: {}", s).into())
